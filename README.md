@@ -1,5 +1,5 @@
 # Argo_llama
-Train the Argoverse dataset on the LLaMA network (adapted from llamac). For more information, visit [LLaMA2.c on GitHub](https://github.com/karpathy/llama2.c).
+Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https://github.com/karpathy/llama2.c)).
 
 ## Changes in the LLaMA Network Structure:
 1. The attention layer `"is_causal"` is set to `false` to allow the network to see the entire sequence. 
