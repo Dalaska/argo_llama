@@ -1,0 +1,6 @@
+out/
+wandb/
+*.pt
+__pycache__/
+*.log
+*.pyc
