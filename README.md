@@ -7,12 +7,12 @@ Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https:
 3. After stacks of transformer layers, add an average pooling layer to reduce the dimension, followed by 2 MLPs to predict the output.
 
 # Usage
-- Install the Argoverse API from [Argoverse API GitHub repository](https://github.com/argoverse/argoverse-api.git). Prepare the Argoverse data into `.pkl` format.
 - Install dependency:
   ```bash
   conda create -n trans_argo python==3.10
   pip install -r requirements.txt
   ```
+- Install the Argoverse API from [Argoverse API GitHub repository](https://github.com/argoverse/argoverse-api.git). 
 - Check out the sample data and checkpoints: cd to the repo directory and runing:
   ```bash
   conda activate trans_argo
@@ -26,4 +26,5 @@ Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https:
 - magenta: agent gt path
 - green: agent predicted path
 - blue: others path
+  
  ![viz](35052.pkl.png "An Example Image")
