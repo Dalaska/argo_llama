@@ -26,7 +26,7 @@ def train(data_dir, max_iters = 100000):
     always_save_checkpoint = False  # if True, always save a checkpoint after each eval
     init_from = "scratch"  # 'scratch' or 'resume'
     # wandb logging
-    wandb_log = True  # disabled by default
+    wandb_log = False  # disabled by default
     wandb_project = "trans_argo"
     wandb_run_name = "run" + datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     # adamw optimizer

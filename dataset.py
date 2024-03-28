@@ -33,7 +33,9 @@ class PrepareDataset(torch.utils.data.IterableDataset):
         shard_filenames = sorted(glob.glob(os.path.join(DATA_DIR, "*.pkl")))
 
         # train/test split. let's use only shard 0 for test split, rest train
-        val_len = 4000 #1
+        val_len = 4000
+        if val_len > len(shard_filenames):
+            val_len = 1
         shard_filenames = shard_filenames[val_len:] if self.split == "train" else shard_filenames[:val_len]
         assert len(shard_filenames)>0, f"No bin files found in {DATA_DIR}"
         while True:

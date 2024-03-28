@@ -13,9 +13,17 @@ Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https:
   conda create -n trans_argo python==3.10
   pip install -r requirements.txt
   ```
-- `run.py` is the entrance. Run the following steps:
+- Check out the sample data and checkpoints: cd to the repo directory and runing:
   ```bash
+  conda activate trans_argo
   python3 run.py prep
   python3 run.py train
   python3 run.py viz
   ```
+
+# 
+- red: agent previous path
+- magenta: agent gt path
+- green: agent predicted path
+- blue: others path
+ ![viz](35052.pkl.png "An Example Image")
