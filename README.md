@@ -1,18 +1,17 @@
 # Argo_llama
 Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https://github.com/karpathy/llama2.c)).
 
-## Changes in the LLaMA Network Structure: 
-- input dim [6, 256]
-  - 256 is the sequence length
-  - 6 is vector lenght
-  agent paths and map segments are represented as vectors:
-  - [x0,y0, x1, y1, type, timestamp]
-  -  x,y are offset by the av's position at prediction time.
-  timestampe, are offset at prediction time.
-- output dim [1, 6]
-  - [x1,y1,x2,y2,x3,y3]
+## Changes in the LLaMA Network: 
+- Input dim [6, 256]
+  - `256` is the sequence length
+  - `6` is vector length
+  Agent paths and map segments are represented as vectors:
+  - `[x0,y0, x1, y1, type, timestamp]`
+  -  `x`,`y` are offset by the av's position at prediction time.
+  - timestamp are offset at prediction time.
+- Output dim [1, 6]
+  - `[x1,y1,x2,y2,x3,y3]`
   - agent's future position at 1,2,3 seconds
-
 
 - The attention layer `"is_causal"` is set to `false` to allow the network to see the entire sequence. 
 - Remove the positional encoding and train the sequence as a bag of words.
