@@ -166,9 +166,9 @@ class Transformer(nn.Module):
             self.layers.append(TransformerBlock(layer_id, params))
         self.norm = RMSNorm(params.dim, eps=params.norm_eps)
         out1_dim = 32
-        output_dim = 6
+        self.target_dim = 6
         self.output1 = nn.Linear(params.dim, out1_dim)
-        self.output2 = nn.Linear(out1_dim, output_dim)
+        self.output2 = nn.Linear(out1_dim, self.target_dim)
         #self.output = nn.Linear(params.dim*params.i, output_dim, bias=False)
         # no potional encoding, track tracks as bag of words
 
@@ -255,3 +255,20 @@ class Transformer(nn.Module):
         flops_promised = 2.98e12
         mfu = flops_achieved / flops_promised
         return mfu
+
+
+if __name__ == '__main__':
+
+    """
+    unit test
+    """
+    from model_args_file import batch_size, model_args, input_length, input_width
+
+    gptconf = ModelArgs(**model_args)
+    model = Transformer(gptconf)
+    rand_input = torch.rand(batch_size, input_length, input_width)
+    targets = torch.rand(batch_size, model.target_dim)
+    output = model(rand_input, targets)
+    print(model)
+    print(f"outputshape: {output.shape}" )
+

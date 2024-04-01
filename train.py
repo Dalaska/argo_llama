@@ -124,7 +124,7 @@ def train(data_dir, max_iters = 100000):
         checkpoint_model_args = checkpoint["model_args"]
         # force these config attributes to be equal otherwise we can't even resume training
         # the rest of the attributes (e.g. dropout) can stay as desired from command line
-        for k in ["dim", "n_layers", "n_heads", "n_kv_heads", "input_width", "multiple_of", "max_seq_len"]:
+        for k in ["dim", "n_layers", "n_heads", "n_kv_heads", "input_width", "multiple_of"]:
             model_args[k] = checkpoint_model_args[k]
         # create the model
         gptconf = ModelArgs(**model_args)
