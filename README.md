@@ -15,7 +15,7 @@ Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https:
 
 - The attention layer `is_causal` is set to `false` to allow the network to see the entire sequence. 
 - Remove the positional encoding and train the sequence as a bag of words.
-- After stacks of transformer layers, add an average pooling layer to reduce the dimension, followed by a MLP to predict the output.
+- After stacks of transformer layers, add an average pooling layer to reduce the dimension, followed by a linear layer to reduce to final output dimension.
 
 # Usage
 - Install dependency:
@@ -36,12 +36,8 @@ Train the Argoverse dataset on the LLaMA network (adapted from [LLaMA2.c](https:
 - gt (magenta)
 - prediction (green)
 
- ![viz](./sample/35052.pkl.png "An Example Image")
+## Unimodal
+ ![viz](./sample/uni_35052.png "Unimodal Example")
 
-# Training
-| Model          | Dimension | Layers | Heads | Parameters |
-|----------------|-----------|--------|-------|------------|
-| Smaller Model  | 64        | 4      | 16    | 264,768    |
-| Bigger Model   | 128       | 8      | 16    | 2,102,208  |
- 
- ![loss](./sample/loss.png "train_val_loss")
+## Multimodal
+ ![viz](./sample/multi_35052.png "Multimodal Example")
