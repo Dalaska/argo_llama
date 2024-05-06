@@ -54,7 +54,7 @@ Input dimension: [batch_size, seq_len, c]
 
  ![viz](./sample/multi_35052.png "Multimodal Example")
 
-### Loss :chart_decreasing:
+### Loss:
 Our model is designed to generate multiple paths, whereas the ground truth consists of only one path. For example, at junctions, we expect the model to generate options for all possible turns. 
 We use the loss of the path with the smallest L2 loss. This strategy encourages the model to explore various possibilities. Since the gradient of the min function is discontinuous, we employ the softmin function as a weighting factor to ensure smoother optimization.
 
