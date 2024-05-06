@@ -6,12 +6,11 @@ import os
 """
 These stages are designed to be run in order.
 python run.py prep
-python run.py train
 python run.py viz
 """
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("stage", type=str, choices=[ "prep", "train", "viz"])
+    parser.add_argument("stage", type=str, choices=[ "prep", "viz"])
     args = parser.parse_args()
     current_directory = os.getcwd()
     # # depending on the stage call the appropriate function
@@ -21,17 +20,10 @@ def main():
         tar_dir = os.path.join(current_directory, 'sample/data/pkl')
         prepare_data(src_dir, tar_dir)
 
-
-    elif args.stage == "train":
-        from train import train
-        DATA_DIR = os.path.join(current_directory, 'sample/data/pkl')
-        max_iters = 100000  # total number of training iterations
-        train(DATA_DIR, max_iters)
-
     elif args.stage == "viz":
         from viz import infer_and_viz
         DATA_DIR  = os.path.join(current_directory, 'sample/data/pkl')
-        ckpt_path = os.path.join(current_directory, 'sample/ckpt_260k.pt')
+        ckpt_path = os.path.join(current_directory, 'sample/pred_96_6_12_12.pt')
         infer_and_viz(DATA_DIR, ckpt_path)
 
     else:

@@ -4,25 +4,29 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-color_map = { 1: 'r', 2: 'b', 3: [0.5 ,0.5, 0.5]}
+color_map = { 5: 'r', 2: 'b', 1: [0.5 ,0.5, 0.5]}
 def visualize(x, y, y_pred=None):
     # plot x
     for xx in  reversed(x):
         vect_type = xx[4]
-        if vect_type == 0:
+        if vect_type == -1:
             continue
         color = color_map[vect_type]
         plt.arrow(xx[0], xx[1], xx[2]-xx[0], xx[3]-xx[1], head_width=2, head_length=2, fc=color, ec=color)
     # plot y
-    color = 'm'
-    for n in range(2):
-        plt.arrow(y[2*n], y[2*n+1], y[2*n+2]-y[2*n], y[2*n+3]-y[2*n+1], head_width=3, head_length=3, fc=color, ec=color)
+    if y is not None:
+        color = 'm'
+        y = y.reshape(3,-1)
+        for m in range(y.shape[0]):
+            for n in range(y.shape[1]//2-1):
+                plt.arrow(y[m][2*n], y[m][2*n+1], y[m][2*n+2]-y[m][2*n], y[m][2*n+3]-y[m][2*n+1], head_width=3, head_length=3, fc=color, ec=color)
     # plot prediction
     if y_pred is not None:
-        # print(y_pred)
         color = 'g'
-        for n in range(2):
-            plt.arrow(y_pred[2*n], y_pred[2*n+1], y_pred[2*n+2]-y_pred[2*n], y_pred[2*n+3]-y_pred[2*n+1], head_width=3, head_length=3, fc=color, ec=color)
+        y_pred = y_pred.reshape(3,-1)
+        for m in range(y_pred.shape[0]):
+            for n in range(y_pred.shape[1]//2-1):
+                plt.arrow(y_pred[m][2*n], y_pred[m][2*n+1], y_pred[m][2*n+2]-y_pred[m][2*n], y_pred[m][2*n+3]-y_pred[m][2*n+1], head_width=3, head_length=3, fc=color, ec=color)
     plt.xlabel("X axis")
     plt.ylabel("Y axis")
     plt.grid(True)  
@@ -34,7 +38,7 @@ def infer_and_viz(DATA_DIR, ckpt_path):
     if ckpt_path is not None:
         import torch
         from model import Transformer, ModelArgs
-        from train import model_args
+        from model_args_file import model_args
         device = "cpu"
         # resume training from a checkpoint.
         checkpoint = torch.load(ckpt_path, map_location=device)
@@ -80,8 +84,6 @@ def infer_and_viz(DATA_DIR, ckpt_path):
             y_pred = model(x_batch, None)
             y_pred =y_pred.detach().numpy()
             y_pred = np.squeeze(y_pred)
-            # print(y_pred)
-            # print(y)
 
             visualize(x, y, y_pred)
             plt.savefig(f'{fn}.png') 
@@ -90,7 +92,7 @@ def infer_and_viz(DATA_DIR, ckpt_path):
     
 
 if __name__ == '__main__':
-    DATA_DIR = '/home/dalaska/train_pkl_test_hahaha'
+    current_directory = os.getcwd()
+    DATA_DIR = os.path.join(current_directory, 'sample/data/pkl')
     ckpt_path = None
-    # ckpt_path = "ckpt.pt"
     infer_and_viz(DATA_DIR, ckpt_path)

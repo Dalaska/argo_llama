@@ -2,17 +2,17 @@
 modify model args here!!!!
 """
 # model
-dim = 64 #5 #in vector space
-n_layers = 4
-n_heads = 16 #5
-n_kv_heads = 16 #5
+dim = 96 #5 #in vector space
+n_layers = 6
+n_heads = 12 #5
+n_kv_heads = 12 #5
 multiple_of = 32
 dropout = 0.0
 
 # data
 batch_size = 64  # if gradient_accumulation_steps > 1, this is the micro-batch size
-input_length = 256
-input_width = 6  # input 3->30 # the Llama 2 tokenizer has 32K tokens #output size
+input_length = 244
+input_width = 5  # input 3->30 # the Llama 2 tokenizer has 32K tokens #output size
 
 
 # model init

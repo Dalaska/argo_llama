@@ -8,8 +8,55 @@ import math
 import pickle as pkl
 from tqdm import tqdm
 
+origin_idx = 19              # index of the frame to split past and future
+future_idx = [29, 39, 49]    # index of the future steps
+new_t = [0.0, -0.5, -1.0, -1.5, -2.0] # time of the past steps
+n_map_max = 180   # maxium length of map sequence 
+n_obs_max = 60    # maxium length of 
+target_shape = (244, 5)
+
+print(f"origin_idx: {origin_idx}, future_idx: {future_idx}, new_t: {new_t}, n_map_max: {n_map_max}, n_obs_max: {n_obs_max}")
+
+
 avm = ArgoverseMap()
-encode_type = {"AGENT": 1.0, "AV": 2.0, "OTHERS": 2.0, "MAP": 3.0} 
+encode_type = {"AGENT": 5.0, "AV": 2.0, "OTHERS": 2.0, "MAP": 1.0} 
+
+
+def linear_interpolate(t, x, new_t):
+    """
+    Performs linear interpolation or extrapolation for a new set of x values.
+
+    :param x: The array of x values (must be monotonically increasing or decreasing).
+    :param t: The array of t values corresponding to each x value.
+    :param new_x: The new x values to interpolate/extrapolate t values for.
+    :return: Interpolated/extrapolated values of t for each new_x.
+    """
+    if len(t) != len(x):
+        raise ValueError("x and t must have the same length.")
+    
+    new_x = []
+    for xi in new_t:
+        if xi <= t[0]:
+            # Extrapolate to the left
+            slope = (x[1] - x[0]) / (t[1] - t[0]) if abs(t[1] - t[0])>1e-6 else 0.0
+            
+            ti = x[0] + slope * (xi - t[0])
+        elif xi >= t[-1]:
+            # Extrapolate to the right
+            slope = (x[-1] - x[-2]) / (t[-1] - t[-2]) if abs(t[-1] - t[-2])>1e-6 else 0.0
+            ti = x[-1] + slope * (xi - t[-1])
+        else:
+            # Interpolate
+            for i in range(len(t) - 1):
+                if t[i] <= xi <= t[i+1] or t[i] >= xi >= t[i+1]:
+                    slope = (x[i+1] - x[i]) / (t[i+1] - t[i]) if abs(t[i+1] - t[i])>1e-6 else 0.0
+                    ti = x[i] + slope * (xi - t[i])
+                    break
+        new_x.append(ti)
+    
+    return new_x
+
+
 
 @dataclass
 class Obs:
@@ -25,32 +72,42 @@ class Obs:
         self.type = type
         
     def encode(self, origin_time):
-        indexes = []
-        for i in range(len(self.timestamp)):
-            if self.timestamp[i] < origin_time+1e-3:
-                indexes.append(i)
 
-        # resample
-        sample_rate = 4   
-        reversed_indexes = indexes[::-1]
-        selected_idx = reversed_indexes[::sample_rate]
+        # center time stamp relative to origin time
+        self.timestamp = [ i - origin_time for i in self.timestamp]
+
+        # select data before origin time
+        t = []
+        x = []
+        y = [] 
+        for i in range(len(self.timestamp)):
+            if self.timestamp[i] < 1e-3:
+                t.append(self.timestamp[i])
+                x.append(self.cor_x[i])
+                y.append(self.cor_y[i])
+
+        if len(t)<2:
+            return []
+        
+        # interpolate
+        new_x = linear_interpolate(t, x, new_t)
+        new_y = linear_interpolate(t, y,  new_t)
+
 
         vects = []
-        for j in range(len(selected_idx)-1):
-            id1 = selected_idx[j]
-            id0 = selected_idx[j+1]
-            vec = [self.cor_x[id0], self.cor_y[id0], self.cor_x[id1], self.cor_y[id1],  encode_type[self.type], self.timestamp[id1]-origin_time ]
+        for j in range(len(new_t)-1):
+            vec = [new_x[j+1], new_y[j+1], new_x[j], new_y[j],  encode_type[self.type]]
             vects.append(vec)
         return vects
- 
+
 def encode_centerline(centerline):
-    dist_threshod = 4.0
+    dist_threshod = 6.0
     tar = []
     last_pt = centerline[0]
     for pt in centerline:
         dist = get_dist(pt, last_pt)
         if dist > dist_threshod:
-            tar.append([last_pt[0], last_pt[1], pt[0], pt[1], encode_type['MAP'], 0.0])
+            tar.append([last_pt[0], last_pt[1], pt[0], pt[1], encode_type['MAP']])
             last_pt = pt
     return tar
 
@@ -85,13 +142,6 @@ def get_sequence(
     df: pd.DataFrame,
 ) -> None:
     
-    # params
-    origin_idx = 19 
-    n_map_max = 200
-    n_obs_max = 56
-    n_seq_max = 256
-    future_idx = [29, 39, 49]
-
     # Seq data
     city_name = df["CITY_NAME"].values[0]
 
@@ -148,12 +198,20 @@ def get_sequence(
         return
     
     origin_time = agent.timestamp[origin_idx]
-    av_x = av.cor_x[19]
-    av_y = av.cor_y[19]
-    agent_x = agent.cor_x[19]
-    agent_y = agent.cor_y[19]
+    av_x = av.cor_x[origin_idx]
+    av_y = av.cor_y[origin_idx]
 
+
+    # agent pool
+    agent_pool = agent.encode(origin_time)
+
+    # # obs pool
     obs_pool = []
+    # add agent to obs pool
+    for i in agent_pool:
+        i_copy = i[:]
+        i_copy[4] = encode_type["OTHERS"] 
+        obs_pool.append(i_copy)
     for obs in others:
         vect = obs.encode(origin_time)
         for i in vect:
@@ -169,8 +227,6 @@ def get_sequence(
             for i in vect:
                 map_pool.append(i)
             
-    agent_pool = agent.encode(origin_time)
-
     # center around av
     agent_pool = center_pool(agent_pool, av_x, av_y)
     obs_pool = center_pool(obs_pool, av_x, av_y)
@@ -178,24 +234,25 @@ def get_sequence(
 
 
     # select around agent
-    c_x = agent_x - av_x
-    c_y = agent_y - av_y
-    obs_pool = select_n_from_pool(obs_pool, n_obs_max, c_x, c_y)
-    map_pool =select_n_from_pool(map_pool,  n_map_max, c_x, c_y)
+    pad = [0.0, 0.0, 0.0, 0.0, -1.0]
+    if len(obs_pool) > n_obs_max:
+        obs_pool = obs_pool[:n_obs_max]
+    while len(obs_pool)<n_obs_max:
+        obs_pool.append(pad)
+
+    if len(map_pool) > n_map_max:
+        map_pool = map_pool[:n_map_max]
+    while len(map_pool)<n_map_max:
+        map_pool.append(pad)
+    
     
     # combine
-    x = agent_pool + obs_pool + map_pool
-
-    # truncate
-    if len(x)> n_seq_max:
-        x = x[:n_seq_max] 
-    
-    # padding
-    while len(x)<n_seq_max:
-        pad = np.array([0.0] * 6)
-        x = np.append(x, [pad], axis=0)
+    if (n_obs_max):
+        x = agent_pool + obs_pool + map_pool
+    else:
+        x = agent_pool + map_pool
     x = np.asarray(x)
-    
+
     # ==================== create y
     y = []
     for i in future_idx:
@@ -222,16 +279,19 @@ def prepare_data(src_dir, tar_dir):
     for fn in tqdm(result):
         filename = fn[:-4] #no .csv
         seq_path = f"{src_dir}/{filename}.csv"
-        # seq_path = f"{src_dir}/4051.csv"
         x,y = get_sequence(afl.get(seq_path).seq_df)
-        with open(f"{tar_dir}/{filename}.pkl", 'wb') as f:
-            pkl.dump((x, y), f)
-            # print(f"saved {filename}")
+        if x.shape == target_shape:
+            with open(f"{tar_dir}/{filename}.pkl", 'wb') as f:
+                pkl.dump((x, y), f)
     return
 
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    src_dir = '/home/dalaska/data/forecast_train/train/data'
-    tar_dir = '/home/dalaska/train_pkl_test_hahaha'
+
+    import os
+    current_directory = os.getcwd()
+    # # depending on the stage call the appropriate function
+    src_dir = os.path.join(current_directory, 'sample/data/csv')
+    tar_dir = os.path.join(current_directory, 'sample/data/pkl')
     prepare_data(src_dir, tar_dir)

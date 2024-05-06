@@ -9,6 +9,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+
+N_PATH = 3 # 1 monmod, 3 multimod
+
 @dataclass
 class ModelArgs:
     # default hyperparameters for the Llama 7B model
@@ -102,10 +105,17 @@ class Attention(nn.Module):
         xv = xv.transpose(1, 2)
 
         # flash implementation
-        output = torch.nn.functional.scaled_dot_product_attention(xq, xk, xv, attn_mask=None, dropout_p=self.dropout if self.training else 0.0, is_causal=False)
+        output = torch.nn.functional.scaled_dot_product_attention(xq, xk, xv, dropout_p=self.dropout if self.training else 0.0, is_causal=False)
+
+        # manual implementation
+        # scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)
+        # scores = scores.masked_fill(attn_mask == 0, float('-inf'))
+        # attn_probabilities = F.softmax(scores, dim=-1)
+        # output = torch.matmul(attn_probabilities, xv)
 
         # restore time as batch dimension and concat heads
         output = output.transpose(1, 2).contiguous().view(bsz, seqlen, -1)
+
 
         # final projection into the residual stream
         output = self.wo(output)
@@ -144,7 +154,7 @@ class TransformerBlock(nn.Module):
         self.attention_norm = RMSNorm(args.dim, eps=args.norm_eps)
         self.ffn_norm = RMSNorm(args.dim, eps=args.norm_eps)
 
-    def forward(self, x,):
+    def forward(self, x):
         h = x + self.attention.forward(self.attention_norm(x))
         out = h + self.feed_forward.forward(self.ffn_norm(h))
         return out
@@ -162,15 +172,15 @@ class Transformer(nn.Module):
 
         self.dropout = nn.Dropout(params.dropout)
         self.layers = torch.nn.ModuleList()
+
         for layer_id in range(params.n_layers):
             self.layers.append(TransformerBlock(layer_id, params))
+
         self.norm = RMSNorm(params.dim, eps=params.norm_eps)
-        out1_dim = 32
-        self.target_dim = 6
-        self.output1 = nn.Linear(params.dim, out1_dim)
-        self.output2 = nn.Linear(out1_dim, self.target_dim)
-        #self.output = nn.Linear(params.dim*params.i, output_dim, bias=False)
-        # no potional encoding, track tracks as bag of words
+
+        
+        self.output_dim = 6*N_PATH
+        self.output_layer = nn.Linear(params.dim, self.output_dim)
 
         # init all weights
         self.apply(self._init_weights)
@@ -190,26 +200,44 @@ class Transformer(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
+
+    def multi_loss(self, tar, out, n):
+         y_shape = 6
+         out_paths = out.view(-1, n, y_shape)  # Reshape to batch_size, n paths, 6 elements each
+         l2_losses = (tar.unsqueeze(1) - out_paths) ** 2
+         l2_losses_summed = l2_losses.sum(dim=2)  # Sum squared differences for each path
+        
+         # Use softmin to get a distribution that focuses on smaller losses
+         weights = F.softmin(l2_losses_summed, dim=1)
+        
+         # Weighted loss, considering all paths but focusing on the ones with smaller losses
+         weighted_loss = (weights * l2_losses_summed).sum(dim=1)
+        
+         return weighted_loss.mean()
+            
+
+    
     def forward(self, tokens: torch.Tensor, targets: Optional[torch.Tensor] = None) -> torch.Tensor:
         _bsz, seqlen, width = tokens.shape
 
+        # attention_mask  = self.create_attention_mask(tokens)
         h = self.tok_embeddings(tokens)
 
         for layer in self.layers:
             h = layer(h)
         h = self.norm(h)
 
-        #flat = torch.flatten(h,start_dim=1)
-        h = torch.mean(h,dim=1)
+        # aggraget info to the first token
+        h = h[:,0,:]    
+
+        outputs = self.output_layer(h)
+
         if targets is not None:
             # if we are given some desired targets also calculate the loss
-            h = self.output1(h)
-            outputs = self.output2(h)
-            self.last_loss = F.l1_loss(outputs.view(-1), targets.view(-1))
+            # self.last_loss = F.l1_loss(outputs.view(-1), targets.view(-1))
+            self.last_loss = self.multi_loss(targets, outputs, N_PATH)
         else:
             # inference-time mini-optimization: only forward the output on the very last position
-            h = self.output1(h)
-            outputs = self.output2(h)
             self.last_loss = None
         return outputs
 
@@ -255,6 +283,8 @@ class Transformer(nn.Module):
         flops_promised = 2.98e12
         mfu = flops_achieved / flops_promised
         return mfu
+
+
 
 
 if __name__ == '__main__':

@@ -7,6 +7,7 @@ import random
 import torch
 import torch.distributed as dist
 import pickle
+import numpy as np
 
 
 class PrepareDataset(torch.utils.data.IterableDataset):
@@ -44,6 +45,28 @@ class PrepareDataset(torch.utils.data.IterableDataset):
                 #load pkl
                 with open(shard, 'rb') as f:
                     x, y = pickle.load(f)
+ 
+                # randomly rotate all vectors to prevent overfitting
+                theta = np.random.uniform(0, 2 * np.pi)
+                cos_theta = np.cos(theta)
+                sin_theta = np.sin(theta)
+                rotation_matrix = np.array([[cos_theta, -sin_theta], 
+                                            [sin_theta, cos_theta]])
+
+                # Rotate the start and end points
+                x[:, :2]  = x[:, :2] @ rotation_matrix
+                x[:, 2:4] = x[:, 2:4] @ rotation_matrix
+
+                if y.shape[0] == 8:
+                    y = y.reshape(4,-1)
+                elif y.shape[0] == 6:    
+                    y = y.reshape(3,-1)
+                else:
+                    raise ValueError("Invalid y shape")
+                
+                y = y @ rotation_matrix
+                y = y.reshape(-1)
+                
                 x = torch.from_numpy(x)
                 y = torch.from_numpy(y)
                 x = x.float()
