@@ -2,7 +2,7 @@
 The goal of this project is to predict future trajectory using the simplest input representation and networks possible. We aim to minimize the domain-specific knowledge and leverage the capabilities of the transformer model to handle all aspects of the task.
 - We chose the argoverse v1 dataset due to its ease of use.
 - The model uses only self-attention transformer (adapted from [LLaMA2.c](https://github.com/karpathy/llama2.c)).
-- checkpoint can be found on [huggingface](https://huggingface.co/dalaska/drive_llama).
+- Checkpoint can be found on [huggingface](https://huggingface.co/dalaska/drive_llama).
 
 ## Usage :hammer_and_wrench:
 - Install dependency:
@@ -29,7 +29,7 @@ The goal of this project is to predict future trajectory using the simplest inpu
   torchrun --standalone --nproc_per_node=4 train.py
   ```
 
-- evaluate the model and visualize the results: (Check out the sample data and checkpoints)
+- Evaluate the model and visualize the results: (Check out the sample data and checkpoints)
  
   ``` bash
   python3 run.py viz
