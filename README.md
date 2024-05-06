@@ -1,10 +1,10 @@
-# Argo_Llama
+# Argo_Llama :car: :llama:
 The goal of this project is to predict future trajectory using the simplest input representation and networks possible. We aim to minimize the domain-specific knowledge and leverage the capabilities of the transformer model to handle all aspects of the task.
 - We chose the argoverse v1 dataset due to its ease of use.
 - The model uses only self-attention transformer (adapted from [LLaMA2.c](https://github.com/karpathy/llama2.c)).
 
 
-## Usage
+## Usage :hammer_and_wrench:
 - Install dependency:
   ```bash
   conda create -n argo_llama python==3.10
@@ -54,14 +54,14 @@ Input dimension: [batch_size, seq_len, c]
 
  ![viz](./sample/multi_35052.png "Multimodal Example")
 
-### Loss
+### Loss :chart_decreasing:
 Our model is designed to generate multiple paths, whereas the ground truth consists of only one path. For example, at junctions, we expect the model to generate options for all possible turns. 
 We use the loss of the path with the smallest L2 loss. This strategy encourages the model to explore various possibilities. Since the gradient of the min function is discontinuous, we employ the softmin function as a weighting factor to ensure smoother optimization.
 
-### Data loader
-In the data loading process, a random rotation is applied to all vectors. This approach significantly reduces overfitting and enhances the model's ability to learn rotation invariance.
+### Data loader:
+In the data loading process, a random rotation is applied to all vectors. This approach significantly reduces overfitting and enhances the model's ability to learn rotation invariance :warning:.
 
-### Use on your own data
-When transferring the model to your own data, we found that rotating the coordinates by a 45-degree angle improves performance. 
+### Use on your own data :arrows_counterclockwise:
+When transferring the model to your own data, we found that rotating the coordinates by a 45-degree angle improves performance :warning:. 
 The model exhibits non-rotation invariance even we add the random rotation in the training. This is due to the Loss funtion. When near the axes, the effect of one dimension is much more pronounced. Rotating the coordinates by 45 degrees compensates for this discrepancy, as both the x and y coordinates contribute roughly equally to the loss.
 ![viz](./sample/customized.png "customized data")
